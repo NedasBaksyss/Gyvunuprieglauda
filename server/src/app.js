@@ -1,6 +1,8 @@
 import express from 'express';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
+import { createCatalogRouter } from './routes/catalog.js';
+import { HttpError } from './lib/http-error.js';
 
 export function createApp({ database, clientDist }) {
   const app = express();
@@ -11,6 +13,8 @@ export function createApp({ database, clientDist }) {
     database.prepare('SELECT 1').get();
     response.set('Cache-Control', 'no-store').json({ status: 'ok', database: 'connected' });
   });
+
+  app.use('/api', createCatalogRouter(database));
 
   app.use('/api', (_request, response) => {
     response.status(404).json({ message: 'API adresas nerastas.' });
@@ -29,6 +33,9 @@ export function createApp({ database, clientDist }) {
   });
 
   app.use((error, _request, response, _next) => {
+    if (error instanceof HttpError) {
+      return response.status(error.status).json({ message: error.message });
+    }
     if (error.type === 'entity.parse.failed') {
       return response.status(400).json({ message: 'Neteisingas JSON formatas.' });
     }

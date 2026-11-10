@@ -1,6 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
+import { normalizeSearch } from '../lib/search.js';
 
 const schema = readFileSync(new URL('./schema.sql', import.meta.url), 'utf8');
 
@@ -12,6 +13,7 @@ export function openDatabase(filename) {
   const database = new DatabaseSync(filename);
   try {
     database.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;');
+    database.function('normalize_search', { deterministic: true }, normalizeSearch);
     database.exec('BEGIN');
     database.exec(schema);
     database.exec('COMMIT');

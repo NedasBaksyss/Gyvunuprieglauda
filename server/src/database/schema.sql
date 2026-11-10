@@ -44,3 +44,8 @@ CREATE INDEX IF NOT EXISTS animals_species_idx ON animals(species_id);
 CREATE INDEX IF NOT EXISTS animals_status_idx ON animals(status);
 CREATE INDEX IF NOT EXISTS inquiries_animal_idx ON inquiries(animal_id);
 CREATE INDEX IF NOT EXISTS inquiries_status_idx ON inquiries(status);
+
+CREATE TABLE IF NOT EXISTS seed_history (
+  name TEXT PRIMARY KEY,
+  applied_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+) STRICT;
