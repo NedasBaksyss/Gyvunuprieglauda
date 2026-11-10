@@ -5,6 +5,7 @@ dist/
 !.env.example
 *.log
 coverage/
+.vitest/
 .DS_Store
 Thumbs.db
 .sites-runtime/

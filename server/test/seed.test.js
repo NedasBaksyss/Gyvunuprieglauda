@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { openDatabase } from '../src/database/index.js';
-import { seedDatabase } from '../src/database/seed.js';
+import { seedDatabase, addDemoPhotos } from '../src/database/seed.js';
+import { readFileSync } from 'node:fs';
 
 test('Pavyzdiniai duomenys įterpiami vieną kartą, pakeitimai ir trynimai išlieka', (context) => {
   const database = openDatabase(':memory:');
@@ -39,4 +40,44 @@ test('Nepavykęs įterpimas atšaukiamas visas ir gali būti pakartotas', (conte
   }
   database.exec('DROP TRIGGER reject_demo_animal');
   assert.equal(seedDatabase(database).applied, true);
+});
+
+test('Ankstesnio etapo pavyzdžiams pridedamos vietinės veikiančios WebP nuotraukos', (context) => {
+  const database = openDatabase(':memory:');
+  context.after(() => database.close());
+  seedDatabase(database);
+  database.exec('UPDATE animals SET photo_path = NULL');
+  assert.equal(addDemoPhotos(database), 4);
+  for (const animal of database.prepare('SELECT photo_path FROM animals').all()) {
+    const file = new URL(`../../client/public${animal.photo_path}`, import.meta.url);
+    const bytes = readFileSync(file);
+    assert.equal(bytes.toString('ascii', 0, 4), 'RIFF');
+    assert.equal(bytes.toString('ascii', 8, 12), 'WEBP');
+  }
+  assert.equal(addDemoPhotos(database), 0);
+});
+
+test('Nuotraukų papildymas neperrašo pasirinkimų ir neatkuria pašalintų pavyzdžių', (context) => {
+  const database = openDatabase(':memory:');
+  context.after(() => database.close());
+  seedDatabase(database);
+  database.exec('UPDATE animals SET photo_path = NULL');
+  database.prepare('UPDATE animals SET photo_path = ? WHERE id = 1').run('/uploads/own.webp');
+  database.prepare('UPDATE animals SET name = ? WHERE id = 2').run('Kitas vardas');
+  database.exec('DELETE FROM animals WHERE id = 4');
+  assert.equal(addDemoPhotos(database), 1);
+  assert.equal(database.prepare('SELECT photo_path FROM animals WHERE id = 1').get().photo_path, '/uploads/own.webp');
+  assert.equal(database.prepare('SELECT photo_path FROM animals WHERE id = 2').get().photo_path, null);
+  assert.equal(database.prepare('SELECT count(*) AS total FROM animals').get().total, 3);
+  database.exec('UPDATE animals SET photo_path = NULL');
+  assert.equal(addDemoPhotos(database), 0);
+});
+
+test('Nuotraukos nepriskiriamos katalogui, kuris nesukurtas pavyzdžių komanda', (context) => {
+  const database = openDatabase(':memory:');
+  context.after(() => database.close());
+  seedDatabase(database);
+  database.exec('DELETE FROM seed_history; UPDATE animals SET photo_path = NULL');
+  assert.equal(addDemoPhotos(database), 0);
+  assert.equal(database.prepare('SELECT count(*) AS total FROM animals WHERE photo_path IS NOT NULL').get().total, 0);
 });

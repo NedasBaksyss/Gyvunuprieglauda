@@ -51,7 +51,7 @@ test('Katalogas ir detalės grąžina tik viešus gyvūno duomenis', async (cont
   ].sort());
   assert.deepEqual(detail.body.animal.species, { id: 1, name: 'Šuo' });
   assert.equal(detail.body.animal.ageMonths, 36);
-  assert.equal(detail.body.animal.photoUrl, null);
+  assert.equal(detail.body.animal.photoUrl, '/images/animals/lukas.webp');
   assert.ok(detail.body.animal.description.includes('Lukas'));
   assert.equal((await get('/users')).status, 404);
   assert.equal((await get('/inquiries')).status, 404);

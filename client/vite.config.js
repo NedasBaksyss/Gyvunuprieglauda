@@ -11,6 +11,10 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    test: {
+      // Testuose naudojamas jsdom localStorage, o ne Node.js failinis variantas.
+      execArgv: ['--no-experimental-webstorage'],
+    },
     server: {
       host: '127.0.0.1',
       port: 5173,
