@@ -160,5 +160,18 @@ export function createAdminRouter(database, auth, photos) {
     database.prepare('DELETE FROM inquiries WHERE id = ?').run(inquiryId);
     response.status(204).end();
   });
+  router.get('/dashboard', (request, response) => {
+    const stats = {
+      animals: database.prepare('SELECT count(*) AS n FROM animals').get().n,
+      available: database.prepare("SELECT count(*) AS n FROM animals WHERE status = 'available'").get().n,
+      newInquiries: database.prepare("SELECT count(*) AS n FROM inquiries WHERE status = 'new'").get().n,
+      species: database.prepare('SELECT count(*) AS n FROM species').get().n,
+      ...(request.user.role === 'admin' ? { users: database.prepare('SELECT count(*) AS n FROM users').get().n } : {}),
+    };
+    const recentAnimals = database.prepare(`SELECT ${publicFields} FROM animals a JOIN species s ON s.id = a.species_id ORDER BY a.id DESC LIMIT 3`).all().map(serializeAnimal);
+    const recentInquiries = database.prepare(`SELECT i.id, i.name, i.status, i.created_at, i.animal_id, a.name AS animal_name FROM inquiries i JOIN animals a ON a.id = i.animal_id ORDER BY i.id DESC LIMIT 3`).all()
+      .map((row) => ({ id: row.id, name: row.name, status: row.status, createdAt: row.created_at, animal: { id: row.animal_id, name: row.animal_name } }));
+    response.json({ stats, recentAnimals, recentInquiries });
+  });
   return router;
 }

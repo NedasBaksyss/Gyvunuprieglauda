@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter } from 'react-router-dom';
 import App from '../src/App.jsx';
 const user = { id: 1, name: 'Administratorius', email: 'admin@example.com', role: 'admin' };
+const dashboard = { stats: { animals: 0, species: 0, users: 1, available: 0, newInquiries: 0 }, recentAnimals: [], recentInquiries: [] };
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 test('Neprisijungęs lankytojas nukreipiamas iš administravimo į prisijungimą', async () => {
   Element.prototype.scrollIntoView = vi.fn();
@@ -15,7 +16,7 @@ test('Neprisijungęs lankytojas nukreipiamas iš administravimo į prisijungimą
 
 test('Atkurta darbuotojo sesija leidžia pasiekti skydelį ir rodo jo prieigą', async () => {
   Element.prototype.scrollIntoView = vi.fn();
-  vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ user: { ...user, name: 'Tomas', role: 'employee' } }) })));
+  vi.stubGlobal('fetch', vi.fn(async (url) => ({ ok: true, status: 200, json: async () => url.endsWith('/dashboard') ? dashboard : ({ user: { ...user, name: 'Tomas', role: 'employee' } }) })));
   render(<MemoryRouter initialEntries={['/admin']}><App /></MemoryRouter>);
   await screen.findByRole('heading', { name: 'Apžvalga' });
   expect(screen.getByText('Darbuotojas')).toBeTruthy();
@@ -26,6 +27,7 @@ test('Prisijungimo klaida, slaptažodžio rodymas, sesija ir atsijungimas', asyn
   let authenticated = false;
   let fail = true;
   vi.stubGlobal('fetch', vi.fn(async (url, options) => {
+    if (url.endsWith('/dashboard')) return { ok: true, status: 200, json: async () => dashboard };
     if (url.endsWith('/login')) {
       expect(options.headers['X-Requested-With']).toBe('shelter-app');
       if (fail) return { ok: false, status: 401, json: async () => ({ message: 'Neteisingi duomenys.' }) };

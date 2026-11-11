@@ -31,6 +31,22 @@ async function setup(context, options = {}) {
 }
 const animalInput = { name: 'Tobis', speciesId: 1, ageMonths: 18, size: 'medium', status: 'available', description: 'Draugiškas ir smalsus šuo.' };
 
+test('Apžvalga grąžina tikrus skaičius ir atnaujinamus naujausius įrašus pagal teises', async (context) => {
+  const { request } = await setup(context);
+  assert.equal((await request('guest', '/api/admin/dashboard')).status, 401);
+  const { animal } = await (await request('admin', '/api/admin/animals', 'POST', animalInput)).json();
+  await request('guest', '/api/inquiries', 'POST', { animalId: animal.id, name: 'Tomas', email: 'tomas@example.com', message: 'Noriu priglausti.' });
+  const admin = await (await request('admin', '/api/admin/dashboard')).json();
+  assert.deepEqual(admin.stats, { animals: 1, available: 1, newInquiries: 1, species: 1, users: 2 });
+  assert.equal(admin.recentAnimals[0].name, 'Tobis'); assert.equal(admin.recentInquiries[0].name, 'Tomas');
+  assert.ok(!('email' in admin.recentInquiries[0]));
+  const employee = await (await request('employee', '/api/admin/dashboard')).json();
+  assert.ok(!('users' in employee.stats));
+  const inquiry = admin.recentInquiries[0];
+  await request('employee', `/api/admin/inquiries/${inquiry.id}`, 'PUT', { name: 'Tomas', email: 'tomas@example.com', message: 'Noriu priglausti.', status: 'completed' });
+  assert.equal((await (await request('admin', '/api/admin/dashboard')).json()).stats.newInquiries, 0);
+});
+
 test('Darbuotojas peržiūri, filtruoja, redaguoja ir pašalina priglaudimo užklausą', async (context) => {
   const { request } = await setup(context);
   const { animal } = await (await request('admin', '/api/admin/animals', 'POST', animalInput)).json();
