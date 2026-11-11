@@ -44,6 +44,7 @@ function RequestState({ request, catalogHref }) {
 }
 
 function AnimalProfile({ animal, catalogHref }) {
+  const { search } = useLocation();
   const { favorites, toggle } = useOutletContext();
   const favorite = favorites.has(animal.id);
   const heading = usePageHeading(animal.name);
@@ -69,7 +70,8 @@ function AnimalProfile({ animal, catalogHref }) {
             <h2 id="description-title">Aprašymas</h2><p>{animal.description}</p>
           </section>
           <p className={`detail-status-note status-${animal.status}`}>{statusNotes[animal.status]}</p>
-          <button className={`button detail-favorite${favorite ? ' is-favorite' : ''}`} type="button" aria-pressed={favorite}
+          {animal.status === 'available' && <Link className="button adopt-button" to={`/gyvunai/${animal.id}/uzklausa${catalogSearch(readCatalogFilters(new URLSearchParams(search)))}`}>Noriu priglausti <Icon name="heart" size={18} /></Link>}
+          <button className={`button button-secondary detail-favorite${favorite ? ' is-favorite' : ''}`} type="button" aria-pressed={favorite}
             aria-label={`${favorite ? 'Pašalinti pažymėjimą' : 'Pažymėti'}: ${animal.name}`} onClick={() => toggle(animal)}>
             <Icon name="heart" size={19} />{favorite ? 'Pažymėtas draugas' : 'Pažymėti draugą'}
           </button>

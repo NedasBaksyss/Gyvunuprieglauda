@@ -11,6 +11,7 @@ import AdminUsers from './pages/AdminUsers.jsx';
 import AdminOverview from './pages/AdminOverview.jsx';
 import AdminAnimals from './pages/AdminAnimals.jsx';
 import AnimalForm from './pages/AnimalForm.jsx';
+import InquiryPage from './pages/InquiryPage.jsx';
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
       <Route element={<PublicLayout />}>
         <Route index element={<HomePage />} />
         <Route path="gyvunai/:id" element={<AnimalPage />} />
+        <Route path="gyvunai/:id/uzklausa" element={<InquiryPage />} />
         <Route path="prisijungti" element={<LoginPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>

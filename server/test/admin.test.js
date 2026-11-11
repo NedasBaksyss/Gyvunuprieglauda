@@ -31,6 +31,23 @@ async function setup(context, options = {}) {
 }
 const animalInput = { name: 'Tobis', speciesId: 1, ageMonths: 18, size: 'medium', status: 'available', description: 'Draugiškas ir smalsus šuo.' };
 
+test('Vieša užklausa išsaugoma, privati informacija neviešinama, užimtų gyvūnų užklausos atmetamos', async (context) => {
+  const { request, database } = await setup(context);
+  const { animal } = await (await request('admin', '/api/admin/animals', 'POST', animalInput)).json();
+  const body = { animalId: animal.id, name: 'Tomas', email: 'tomas@example.com', message: 'Norėčiau susipažinti su Tobiu.' };
+  const created = await request('guest', '/api/inquiries', 'POST', body);
+  assert.equal(created.status, 201);
+  assert.equal(database.prepare('SELECT name FROM inquiries').get().name, 'Tomas');
+  assert.ok(!JSON.stringify(await created.json()).includes(body.email));
+  assert.equal((await request('guest', '/api/inquiries')).status, 404);
+  for (const input of [{ ...body, name: ' ' }, { ...body, email: 'bad' }, { ...body, animalId: 999 }, { ...body, message: '' }]) {
+    assert.ok([400, 404].includes((await request('guest', '/api/inquiries', 'POST', input)).status));
+  }
+  await request('admin', `/api/admin/animals/${animal.id}`, 'PUT', { ...animalInput, status: 'adopted' });
+  assert.equal((await request('guest', '/api/inquiries', 'POST', body)).status, 409);
+  assert.equal(database.prepare('SELECT count(*) AS n FROM inquiries').get().n, 1);
+});
+
 test('Vartotojų valdymas slepia slaptažodžius, tikrina teises ir apsaugo paskutinį administratorių', async (context) => {
   const { request } = await setup(context);
   assert.equal((await request('employee', '/api/admin/users')).status, 403);

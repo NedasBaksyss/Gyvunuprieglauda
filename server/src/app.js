@@ -7,6 +7,7 @@ import { HttpError } from './lib/http-error.js';
 import { createAuth } from './auth.js';
 import { createAdminRouter } from './routes/admin.js';
 import { createPhotos, photoPathPattern } from './lib/photos.js';
+import { createInquiryRouter } from './routes/inquiries.js';
 
 export function createApp({ database, clientDist, secureCookies, uploadsDir = fileURLToPath(new URL('../uploads/', import.meta.url)) }) {
   const app = express();
@@ -27,6 +28,7 @@ export function createApp({ database, clientDist, secureCookies, uploadsDir = fi
   });
 
   app.use('/api', createCatalogRouter(database));
+  app.use('/api', createInquiryRouter(database, auth));
 
   app.use('/api', (_request, response) => {
     response.status(404).json({ message: 'API adresas nerastas.' });
