@@ -16,6 +16,7 @@ export function AuthProvider({ children }) {
     }
   }, []);
   useEffect(() => { const controller = new AbortController(); refresh(controller.signal); return () => { controller.abort(); revision.current++; }; }, [refresh]);
+  useEffect(() => { const check = () => refresh(); window.addEventListener('shelter:session-check', check); return () => window.removeEventListener('shelter:session-check', check); }, [refresh]);
   async function login(credentials) {
     const current = ++revision.current;
     const data = await apiRequest('/api/auth/login', { method: 'POST', body: credentials });

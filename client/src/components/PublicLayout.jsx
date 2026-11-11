@@ -38,7 +38,7 @@ export default function PublicLayout() {
             <Link to={`${home}#gyvunai`} aria-current={pathname.startsWith('/gyvunai/') ? 'page' : undefined}>Gyvūnai</Link>
             <Link to={`${home}#apie-mus`}>Apie mus</Link>
           </nav>
-          <Link className="button header-cta" to="/prisijungti">{user ? 'Mano paskyra' : 'Prisijungti'} <Icon name="user" size={17} /></Link>
+          <Link className="button header-cta" to={user ? '/admin' : '/prisijungti'}>{user ? 'Valdymas' : 'Prisijungti'} <Icon name="user" size={17} /></Link>
         </div>
       </header>
       <main id="turinys" tabIndex="-1"><Outlet context={favorites} /></main>

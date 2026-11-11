@@ -14,7 +14,10 @@ export async function apiRequest(path, { method = 'GET', body, signal } = {}) {
         ...(body && !(body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}) },
       ...(body ? { body: body instanceof FormData ? body : JSON.stringify(body) } : {}) });
     const data = response.status === 204 ? null : await response.json();
-    if (!response.ok) throw new ApiError(response.status, data?.message || 'Nepavyko atlikti veiksmo.');
+    if (!response.ok) {
+      if ([401, 403].includes(response.status) && !path.startsWith('/api/auth/')) window.dispatchEvent(new Event('shelter:session-check'));
+      throw new ApiError(response.status, data?.message || 'Nepavyko atlikti veiksmo.');
+    }
     return data;
   } catch (error) {
     if (error instanceof ApiError || signal?.aborted) throw error;

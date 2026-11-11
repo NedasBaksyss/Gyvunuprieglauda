@@ -1,11 +1,13 @@
 import { useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth.jsx';
 import usePageHeading from '../hooks/usePageHeading.js';
 import Icon from '../components/Icon.jsx';
 
 export default function LoginPage() {
   const auth = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const heading = usePageHeading(auth.user ? 'Mano paskyra' : 'Prisijungti');
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -17,7 +19,11 @@ export default function LoginPage() {
     pending.current = true; setBusy(true); setError('');
     const form = event.currentTarget;
     const data = new FormData(form);
-    try { await auth.login({ email: data.get('email'), password: data.get('password') }); form.reset(); }
+    try {
+      await auth.login({ email: data.get('email'), password: data.get('password') }); form.reset();
+      const from = location.state?.from;
+      navigate(typeof from === 'string' && /^\/admin(?:\/|\?|$)/.test(from) ? from : '/admin', { replace: true });
+    }
     catch (failure) { setError(failure.message); }
     finally { pending.current = false; setBusy(false); }
   }
@@ -31,7 +37,7 @@ export default function LoginPage() {
       <span className="eyebrow">Prieglaudos komanda</span>
       <h1 className="state-title" ref={heading} tabIndex="-1">{auth.user ? 'Mano paskyra' : <>Prisijungti<br />prie sistemos</>}</h1>
       {auth.loading ? <p role="status">Tikrinama sesija…</p> : auth.error ? <div role="alert"><p>{auth.error}</p><button className="button" onClick={() => auth.refresh()}>Bandyti dar kartą</button></div>
-        : auth.user ? <div className="account-card"><p><strong>{auth.user.name}</strong><br />{auth.user.email}</p><span className="status-badge status-available">{auth.user.role === 'admin' ? 'Administratorius' : 'Darbuotojas'}</span><button className="button" disabled={busy} onClick={logout}>{busy ? 'Atsijungiama…' : 'Atsijungti'}</button></div>
+        : auth.user ? <div className="account-card"><p><strong>{auth.user.name}</strong><br />{auth.user.email}</p><span className="status-badge status-available">{auth.user.role === 'admin' ? 'Administratorius' : 'Darbuotojas'}</span><Link className="button" to="/admin">Administravimo skydelis</Link><button className="button button-secondary" disabled={busy} onClick={logout}>{busy ? 'Atsijungiama…' : 'Atsijungti'}</button></div>
           : <form onSubmit={submit} className="form-stack">
             <label>El. paštas<input type="email" name="email" autoComplete="username" required maxLength="254" placeholder="vardas@prieglauda.lt" disabled={busy} /></label>
             <label>Slaptažodis<span className="password-field"><input type={visible ? 'text' : 'password'} name="password" autoComplete="current-password" required maxLength="128" placeholder="Įveskite slaptažodį" disabled={busy} />

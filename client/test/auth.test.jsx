@@ -5,6 +5,22 @@ import { MemoryRouter } from 'react-router-dom';
 import App from '../src/App.jsx';
 const user = { id: 1, name: 'Administratorius', email: 'admin@example.com', role: 'admin' };
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+test('Neprisijungęs lankytojas nukreipiamas iš administravimo į prisijungimą', async () => {
+  Element.prototype.scrollIntoView = vi.fn();
+  vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 401, json: async () => ({ message: 'Prisijunkite.' }) })));
+  render(<MemoryRouter initialEntries={['/admin']}><App /></MemoryRouter>);
+  await screen.findByLabelText('El. paštas');
+  expect(screen.queryByRole('navigation', { name: 'Administravimo meniu' })).toBeNull();
+});
+
+test('Atkurta darbuotojo sesija leidžia pasiekti skydelį ir rodo jo prieigą', async () => {
+  Element.prototype.scrollIntoView = vi.fn();
+  vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ user: { ...user, name: 'Tomas', role: 'employee' } }) })));
+  render(<MemoryRouter initialEntries={['/admin']}><App /></MemoryRouter>);
+  await screen.findByRole('heading', { name: 'Apžvalga' });
+  expect(screen.getByText('Darbuotojas')).toBeTruthy();
+  expect(screen.getByText(/Darbuotojas gali tvarkyti gyvūnus/)).toBeTruthy();
+});
 test('Prisijungimo klaida, slaptažodžio rodymas, sesija ir atsijungimas', async () => {
   Element.prototype.scrollIntoView = vi.fn();
   let authenticated = false;
@@ -29,6 +45,8 @@ test('Prisijungimo klaida, slaptažodžio rodymas, sesija ir atsijungimas', asyn
   await screen.findByText('Neteisingi duomenys.');
   fail = false;
   fireEvent.click(screen.getByRole('button', { name: 'Prisijungti' }));
+  await screen.findByRole('heading', { name: 'Apžvalga' });
+  fireEvent.click(screen.getByRole('link', { name: 'Mano paskyra' }));
   await screen.findByRole('heading', { name: 'Mano paskyra' });
   expect(screen.getByText(user.email)).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Atsijungti' }));

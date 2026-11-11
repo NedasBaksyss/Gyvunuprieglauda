@@ -5,10 +5,16 @@ import AnimalPage from './pages/AnimalPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import { AuthProvider } from './hooks/useAuth.jsx';
+import AdminLayout from './components/AdminLayout.jsx';
+import AdminOverview from './pages/AdminOverview.jsx';
 
 export default function App() {
   return (
     <AuthProvider><Routes>
+      <Route path="admin" element={<AdminLayout />}>
+        <Route index element={<AdminOverview />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
       <Route element={<PublicLayout />}>
         <Route index element={<HomePage />} />
         <Route path="gyvunai/:id" element={<AnimalPage />} />
