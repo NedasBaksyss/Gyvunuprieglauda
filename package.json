@@ -12,6 +12,7 @@
     "build": "npm run build --workspace client",
     "start": "npm run start --workspace server",
     "test": "npm run test --workspaces",
+    "verify": "npm test && npm run build && node server/scripts/verify-production.js",
     "db:seed": "npm run db:seed --workspace server",
     "user:create": "npm run user:create --workspace server --"
   },

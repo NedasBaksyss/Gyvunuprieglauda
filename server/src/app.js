@@ -12,6 +12,10 @@ import { createInquiryRouter } from './routes/inquiries.js';
 export function createApp({ database, clientDist, secureCookies, uploadsDir = fileURLToPath(new URL('../uploads/', import.meta.url)) }) {
   const app = express();
   app.disable('x-powered-by');
+  app.use((_request, response, next) => {
+    response.set({ 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY', 'Referrer-Policy': 'strict-origin-when-cross-origin' });
+    next();
+  });
   app.use(express.json({ limit: '100kb' }));
   const auth = createAuth(database, { secureCookies });
   app.use('/api/auth', auth.router);
