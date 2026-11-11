@@ -31,6 +31,28 @@ async function setup(context, options = {}) {
 }
 const animalInput = { name: 'Tobis', speciesId: 1, ageMonths: 18, size: 'medium', status: 'available', description: 'Draugiškas ir smalsus šuo.' };
 
+test('Vartotojų valdymas slepia slaptažodžius, tikrina teises ir apsaugo paskutinį administratorių', async (context) => {
+  const { request } = await setup(context);
+  assert.equal((await request('employee', '/api/admin/users')).status, 403);
+  assert.equal((await request('guest', '/api/admin/users')).status, 401);
+  const list = await (await request('admin', '/api/admin/users')).json();
+  assert.ok(list.items.every((user) => !('password_hash' in user) && !('password' in user)));
+  const admin = list.items.find((user) => user.role === 'admin');
+  assert.equal((await request('admin', `/api/admin/users/${admin.id}`, 'PUT', { name: admin.name, email: admin.email, role: 'employee', isActive: true })).status, 409);
+  assert.equal((await request('admin', `/api/admin/users/${admin.id}`, 'DELETE')).status, 409);
+  const body = { name: 'Naujas', email: 'new@example.com', password, role: 'employee' };
+  assert.equal((await request('employee', '/api/admin/users', 'POST', body)).status, 403);
+  const response = await request('admin', '/api/admin/users', 'POST', body);
+  assert.equal(response.status, 201);
+  const { user } = await response.json();
+  assert.equal((await request('admin', '/api/admin/users', 'POST', body)).status, 409);
+  assert.equal((await request('admin', `/api/admin/users/${user.id}`, 'PUT', { name: user.name, email: user.email, role: 'admin', isActive: true, password: 'Naujas-slaptazodis-2026' })).status, 200);
+  assert.equal((await request('admin', `/api/admin/users/${user.id}`, 'DELETE')).status, 204);
+  const employee = list.items.find((item) => item.role === 'employee');
+  assert.equal((await request('admin', `/api/admin/users/${employee.id}`, 'PUT', { name: employee.name, email: employee.email, role: employee.role, isActive: false })).status, 200);
+  assert.equal((await request('employee', '/api/admin/animals')).status, 401);
+});
+
 test('Rūšių CRUD skirtas tik administratoriui ir saugo naudojamas bei pasikartojančias rūšis', async (context) => {
   const { request } = await setup(context);
   for (const [method, url] of [['POST', '/api/admin/species'], ['PUT', '/api/admin/species/1'], ['DELETE', '/api/admin/species/1']]) {

@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage.jsx';
 import { AuthProvider } from './hooks/useAuth.jsx';
 import AdminLayout, { RequireAdmin } from './components/AdminLayout.jsx';
 import AdminSpecies from './pages/AdminSpecies.jsx';
+import AdminUsers from './pages/AdminUsers.jsx';
 import AdminOverview from './pages/AdminOverview.jsx';
 import AdminAnimals from './pages/AdminAnimals.jsx';
 import AnimalForm from './pages/AnimalForm.jsx';
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="gyvunai/naujas" element={<AnimalForm />} />
         <Route path="gyvunai/:id" element={<AnimalForm />} />
         <Route path="rusys" element={<RequireAdmin><AdminSpecies /></RequireAdmin>} />
+        <Route path="vartotojai" element={<RequireAdmin><AdminUsers /></RequireAdmin>} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route element={<PublicLayout />}>

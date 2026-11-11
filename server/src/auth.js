@@ -35,11 +35,12 @@ async function verifyPassword(password, stored) {
   return timingSafeEqual(actual, Buffer.from(expected, 'hex')) && valid;
 }
 
-export async function createUser(database, { name, email, password, role = 'employee' }) {
+export async function createUser(database, { name, email, password, role = 'employee' }, authorize = () => {}) {
   email = validateEmail(email);
   if (typeof name !== 'string' || !name.trim() || name.trim().length > 100) throw new HttpError(400, 'Vardas turi būti nuo 1 iki 100 simbolių.');
   if (!['admin', 'employee'].includes(role)) throw new HttpError(400, 'Nežinoma vartotojo rolė.');
   const hash = await hashPassword(password);
+  authorize();
   if (database.prepare('SELECT id FROM users WHERE email = ?').get(email)) throw new HttpError(409, 'Toks el. paštas jau naudojamas.');
   const result = database.prepare('INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, ?)').run(name.trim(), email, hash, role);
   return publicUser(database.prepare('SELECT * FROM users WHERE id = ?').get(result.lastInsertRowid));

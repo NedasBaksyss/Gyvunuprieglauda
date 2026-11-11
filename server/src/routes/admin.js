@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { createCatalogRouter, publicFields, serializeAnimal } from './catalog.js';
 import { HttpError } from '../lib/http-error.js';
 import { choice, id, integer, objectBody, text } from '../lib/validation.js';
+import { createUser, hashPassword, publicUser, validateEmail } from '../auth.js';
 
 export function createAdminRouter(database, auth, photos) {
   const router = Router();
@@ -78,6 +79,54 @@ export function createAdminRouter(database, auth, photos) {
     const speciesId = id(request.params.id); requireSpecies(speciesId);
     if (database.prepare('SELECT id FROM animals WHERE species_id = ? LIMIT 1').get(speciesId)) throw new HttpError(409, 'Rūšis priskirta gyvūnams. Pirmiausia pakeiskite jų rūšį.');
     database.prepare('DELETE FROM species WHERE id = ?').run(speciesId);
+    response.status(204).end();
+  });
+  const serializeUser = (row) => ({ ...publicUser(row), isActive: Boolean(row.is_active), createdAt: row.created_at });
+  function requireAccount(userId) {
+    const user = database.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+    if (!user) throw new HttpError(404, 'Vartotojas nerastas.');
+    return user;
+  }
+  function assertAdmin(request) {
+    const actor = requireAccount(request.user.id);
+    if (!actor.is_active || actor.role !== 'admin') throw new HttpError(403, 'Šiam veiksmui nepakanka teisių.');
+  }
+  function protectLastAdmin(user, role, active) {
+    if (user.role === 'admin' && user.is_active && (role !== 'admin' || !active)
+      && database.prepare("SELECT count(*) AS n FROM users WHERE role = 'admin' AND is_active = 1").get().n <= 1) {
+      throw new HttpError(409, 'Sistemoje turi likti bent vienas aktyvus administratorius.');
+    }
+  }
+  router.get('/users', auth.requireRole('admin'), (_request, response) => response.json({ items: database.prepare('SELECT * FROM users ORDER BY id').all().map(serializeUser) }));
+  router.post('/users', auth.requireRole('admin'), async (request, response) => {
+    objectBody(request.body, ['name', 'email', 'password', 'role']);
+    const user = await createUser(database, request.body, () => assertAdmin(request));
+    response.status(201).json({ user: serializeUser(requireAccount(user.id)) });
+  });
+  router.put('/users/:id', auth.requireRole('admin'), async (request, response) => {
+    const userId = id(request.params.id); requireAccount(userId);
+    const body = objectBody(request.body, ['name', 'email', 'role', 'isActive', 'password']);
+    const name = text(body.name, 'Vardas'); const email = validateEmail(body.email);
+    const role = choice(body.role, ['admin', 'employee'], 'Rolė');
+    if (typeof body.isActive !== 'boolean') throw new HttpError(400, 'Nurodykite paskyros aktyvumą.');
+    const passwordHash = body.password === undefined || body.password === '' ? null : await hashPassword(body.password);
+    assertAdmin(request);
+    database.exec('BEGIN IMMEDIATE');
+    try {
+      const user = requireAccount(userId);
+      protectLastAdmin(user, role, body.isActive);
+      if (database.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(email, userId)) throw new HttpError(409, 'Toks el. paštas jau naudojamas.');
+      database.prepare("UPDATE users SET name = ?, email = ?, role = ?, is_active = ?, password_hash = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?").run(name, email, role, Number(body.isActive), passwordHash || user.password_hash, userId);
+      if (passwordHash || !body.isActive) database.prepare('DELETE FROM sessions WHERE user_id = ?').run(userId);
+      database.exec('COMMIT');
+    } catch (error) { database.exec('ROLLBACK'); throw error; }
+    response.json({ user: serializeUser(requireAccount(userId)) });
+  });
+  router.delete('/users/:id', auth.requireRole('admin'), (request, response) => {
+    const userId = id(request.params.id);
+    if (userId === request.user.id) throw new HttpError(409, 'Savo paskyros pašalinti negalite.');
+    const user = requireAccount(userId); protectLastAdmin(user, '', false);
+    database.prepare('DELETE FROM users WHERE id = ?').run(userId);
     response.status(204).end();
   });
   return router;
