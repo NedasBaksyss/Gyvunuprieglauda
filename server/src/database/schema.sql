@@ -16,6 +16,13 @@ CREATE TABLE IF NOT EXISTS species (
   updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 ) STRICT;
 
+CREATE TABLE IF NOT EXISTS sessions (
+  token_hash TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  expires_at INTEGER NOT NULL
+) STRICT;
+CREATE INDEX IF NOT EXISTS sessions_expiry_idx ON sessions(expires_at);
+
 CREATE TABLE IF NOT EXISTS animals (
   id INTEGER PRIMARY KEY,
   species_id INTEGER NOT NULL REFERENCES species(id) ON DELETE RESTRICT,

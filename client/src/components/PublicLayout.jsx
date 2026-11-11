@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Link, Outlet, useLocation, useNavigationType } from 'react-router-dom';
 import Icon from './Icon.jsx';
 import useFavorites from '../hooks/useFavorites.js';
+import useAuth from '../hooks/useAuth.jsx';
 import { catalogSearch, readCatalogFilters } from '../lib/catalog.js';
 
 export default function PublicLayout() {
@@ -10,6 +11,7 @@ export default function PublicLayout() {
   const navigationType = useNavigationType();
   const previousLocation = useRef(null);
   const favorites = useFavorites();
+  const { user } = useAuth();
   const home = `/${catalogSearch(readCatalogFilters(new URLSearchParams(search)))}`;
 
   useEffect(() => {
@@ -36,7 +38,7 @@ export default function PublicLayout() {
             <Link to={`${home}#gyvunai`} aria-current={pathname.startsWith('/gyvunai/') ? 'page' : undefined}>Gyvūnai</Link>
             <Link to={`${home}#apie-mus`}>Apie mus</Link>
           </nav>
-          <Link className="button header-cta" to={`${home}#gyvunai`}>Rasti draugą <Icon name="heart" size={17} /></Link>
+          <Link className="button header-cta" to="/prisijungti">{user ? 'Mano paskyra' : 'Prisijungti'} <Icon name="user" size={17} /></Link>
         </div>
       </header>
       <main id="turinys" tabIndex="-1"><Outlet context={favorites} /></main>

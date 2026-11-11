@@ -35,6 +35,7 @@ beforeEach(() => {
   localStorage.clear();
   Element.prototype.scrollIntoView = vi.fn();
   fetchMock = vi.fn(async (url) => {
+    if (url === '/api/auth/me') return response({}, 401);
     if (url === '/api/species') return response({ items: species });
     if (url.startsWith('/api/animals/')) {
       const animal = animals.find((item) => item.id === Number(url.split('/').at(-1)));
@@ -95,6 +96,7 @@ test('Tuščios paieškos rezultatas leidžia grįžti į visą sąrašą', asyn
 test('Po tinklo klaidos pakartojimo mygtukas vėl užkrauna katalogą', async () => {
   let fail = true;
   fetchMock.mockImplementation(async (url) => {
+    if (url === '/api/auth/me') return response({}, 401);
     if (url === '/api/species') return response({ items: species });
     if (fail) throw new Error('Network error');
     return response(page(animals));
@@ -123,6 +125,7 @@ test('Širdutė išlieka per naują puslapio atvėrimą, sugadintas saugojimas n
 
 test('Puslapiavimas rodo kitą puslapį, o filtras grąžina į pirmą', async () => {
   fetchMock.mockImplementation(async (url) => {
+    if (url === '/api/auth/me') return response({}, 401);
     if (url === '/api/species') return response({ items: species });
     const params = new URL(url, 'http://localhost').searchParams;
     if (params.has('speciesId')) return response(page([animals[1]]));
@@ -151,6 +154,7 @@ test('Neįkelta nuotrauka pakeičiama aiškiu pakaitiniu vaizdu', async () => {
 
 test('Sumažėjus sąrašui lankytojas neužstringa ištuštėjusiame puslapyje', async () => {
   fetchMock.mockImplementation(async (url) => {
+    if (url === '/api/auth/me') return response({}, 401);
     if (url === '/api/species') return response({ items: species });
     const params = new URL(url, 'http://localhost').searchParams;
     return response(params.get('page') === '2' ? page([], 2, 1) : page(animals, 1, 13));
@@ -190,7 +194,7 @@ test('Tiesioginė gyvūno nuoroda rodo jo duomenis, antraštę ir pasiekiamą fo
   expect(screen.getByRole('img', { name: 'Lukas – šuo' }).getAttribute('src')).toBe(animals[0].photoUrl);
   expect(document.title).toBe('Lukas | Gyvūnų prieglauda');
   expect(document.activeElement).toBe(heading);
-  expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(['/api/animals/1']);
+  expect(fetchMock.mock.calls.map(([url]) => url).filter((url) => url !== '/api/auth/me')).toEqual(['/api/animals/1']);
 });
 
 test('Nuoroda iš filtruoto antro puslapio ir grįžimas išsaugo visus filtrus', async () => {
@@ -251,15 +255,20 @@ test('Nerastas įrašas išlaiko grįžimo filtrus, o klaidingas adresas nekvie�
   fetchMock.mockClear();
   const second = renderApp(['/gyvunai/neteisingas']);
   expect(screen.getByRole('heading', { name: 'Gyvūnas nerastas' })).toBeTruthy();
-  expect(fetchMock).not.toHaveBeenCalled();
+  expect(fetchMock.mock.calls.filter(([url]) => url !== '/api/auth/me')).toHaveLength(0);
   second.unmount();
   renderApp(['/nezinomas-puslapis']);
   expect(screen.getByRole('heading', { name: 'Puslapis nerastas' })).toBeTruthy();
-  expect(fetchMock).not.toHaveBeenCalled();
+  expect(fetchMock.mock.calls.filter(([url]) => url !== '/api/auth/me')).toHaveLength(0);
 });
 
 test('Serverio klaida nesupainiojama su 404 ir leidžia pakartoti užklausą', async () => {
-  fetchMock.mockResolvedValueOnce(response({ message: 'Klaida' }, 500));
+  const originalFetch = fetchMock.getMockImplementation();
+  let fail = true;
+  fetchMock.mockImplementation((url, options) => {
+    if (url === '/api/animals/1' && fail) { fail = false; return Promise.resolve(response({ message: 'Klaida' }, 500)); }
+    return originalFetch(url, options);
+  });
   renderApp(['/gyvunai/1']);
   await screen.findByRole('heading', { name: 'Nepavyko įkelti gyvūno' });
   expect(screen.queryByRole('heading', { name: 'Gyvūnas nerastas' })).toBeNull();

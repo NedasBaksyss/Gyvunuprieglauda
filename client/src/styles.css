@@ -264,3 +264,25 @@ input::placeholder { color: #73837b; opacity: 1; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+.login-section { display: grid; grid-template-columns: 1fr 1fr; margin-block: 44px; max-width: 920px; min-height: 540px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: white; }
+.login-picture { position: relative; isolation: isolate; min-height: 440px; background: #1b352a; color: white; }
+.login-picture > img { position: absolute; width: 100%; height: 100%; object-fit: cover; object-position: center 36%; z-index: -2; }
+.login-picture::after { content: ''; position: absolute; inset: 0; background: linear-gradient(transparent 30%, #15271ce8); z-index: -1; }
+.login-picture > div { position: absolute; bottom: 36px; left: 35px; right: 25px; }
+.login-picture > div > img { width: 38px; filter: brightness(0) invert(1); }
+.login-picture h2 { font-size: 28px; }
+.login-picture p { font-size: 13px; line-height: 1.8; }
+.login-panel { padding: 54px 42px; align-self: center; min-width: 0; }
+.login-panel .state-title { line-height: 1.3; margin: 15px 0 28px; }
+.login-panel > .text-link { margin-top: 20px; font-size: 11px; }
+.form-stack { display: grid; gap: 20px; }
+.form-stack label, .form-field { display: grid; gap: 8px; font-size: 12px; font-weight: 700; }
+.form-stack input, .form-stack select, .form-stack textarea { min-width: 0; width: 100%; border: 1px solid #d7e1dd; border-radius: 5px; padding: 12px; background: #fcfdfd; color: #263c33; font: inherit; font-size: 13px; font-weight: 400; }
+.password-field { position: relative; display: block; }
+.password-field input { padding-right: 45px; }
+.password-field button { position: absolute; inset: 1px 1px 1px auto; width: 42px; display: grid; place-items: center; background: transparent; border: 0; color: #637b70; }
+.form-error { color: #a33035; background: #fff0f0; padding: 12px; border-radius: 5px; font-size: 13px; line-height: 1.6; }
+.account-card p { overflow-wrap: anywhere; line-height: 1.9; font-size: 14px; }
+.account-card .button { display: flex; width: 100%; margin-top: 24px; }
+@media (max-width: 760px) { .login-section { grid-template-columns: 1fr; margin-block: 24px; } .login-picture { min-height: 240px; } .login-picture > img { object-position: center 31%; } .login-picture > div { left: 25px; bottom: 18px; } .login-picture h2 { font-size: 24px; } .login-picture > div > img { display: none; } .login-panel { padding: 32px 25px; } }

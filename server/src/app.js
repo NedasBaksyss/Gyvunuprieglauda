@@ -3,11 +3,14 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { createCatalogRouter } from './routes/catalog.js';
 import { HttpError } from './lib/http-error.js';
+import { createAuth } from './auth.js';
 
-export function createApp({ database, clientDist }) {
+export function createApp({ database, clientDist, secureCookies }) {
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json({ limit: '100kb' }));
+  const auth = createAuth(database, { secureCookies });
+  app.use('/api/auth', auth.router);
 
   app.get('/api/health', (_request, response) => {
     database.prepare('SELECT 1').get();
