@@ -22,6 +22,7 @@ export default function AdminLayout() {
       <nav aria-label="Administravimo meniu">
         <NavLink to="/admin" end><Icon name="home" />Apžvalga</NavLink>
         <NavLink to="/admin/gyvunai"><Icon name="heart" />Gyvūnai</NavLink>
+        <NavLink to="/admin/uzklausos"><Icon name="mail" />Užklausos</NavLink>
         {auth.user.role === 'admin' && <NavLink to="/admin/rusys"><Icon name="tag" />Rūšys</NavLink>}
         {auth.user.role === 'admin' && <NavLink to="/admin/vartotojai"><Icon name="user" />Vartotojai</NavLink>}
         <Link to="/prisijungti"><Icon name="user" />Mano paskyra</Link>

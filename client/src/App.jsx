@@ -12,6 +12,7 @@ import AdminOverview from './pages/AdminOverview.jsx';
 import AdminAnimals from './pages/AdminAnimals.jsx';
 import AnimalForm from './pages/AnimalForm.jsx';
 import InquiryPage from './pages/InquiryPage.jsx';
+import AdminInquiries, { InquiryEditor } from './pages/AdminInquiries.jsx';
 
 export default function App() {
   return (
@@ -23,6 +24,8 @@ export default function App() {
         <Route path="gyvunai/:id" element={<AnimalForm />} />
         <Route path="rusys" element={<RequireAdmin><AdminSpecies /></RequireAdmin>} />
         <Route path="vartotojai" element={<RequireAdmin><AdminUsers /></RequireAdmin>} />
+        <Route path="uzklausos" element={<AdminInquiries />} />
+        <Route path="uzklausos/:id" element={<InquiryEditor />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route element={<PublicLayout />}>

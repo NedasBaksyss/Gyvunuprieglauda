@@ -129,5 +129,36 @@ export function createAdminRouter(database, auth, photos) {
     database.prepare('DELETE FROM users WHERE id = ?').run(userId);
     response.status(204).end();
   });
+  const inquiryFields = `i.*, a.name AS animal_name, a.photo_path`;
+  const serializeInquiry = (row) => ({ id: row.id, name: row.name, email: row.email, message: row.message,
+    status: row.status, createdAt: row.created_at, updatedAt: row.updated_at,
+    animal: { id: row.animal_id, name: row.animal_name, photoUrl: row.photo_path } });
+  function readInquiry(inquiryId) {
+    const row = database.prepare(`SELECT ${inquiryFields} FROM inquiries i JOIN animals a ON a.id = i.animal_id WHERE i.id = ?`).get(inquiryId);
+    if (!row) throw new HttpError(404, 'Užklausa nerasta.');
+    return serializeInquiry(row);
+  }
+  router.get('/inquiries', (request, response) => {
+    if (Object.keys(request.query).some((key) => !['status', 'page'].includes(key))) throw new HttpError(400, 'Nežinomas paieškos parametras.');
+    const page = request.query.page === undefined ? 1 : integer(id(request.query.page), 'Puslapis', 1, 1000000);
+    const status = request.query.status === undefined || request.query.status === '' ? '' : choice(request.query.status, ['new', 'reviewed', 'completed'], 'Būsena');
+    const values = status ? [status] : []; const where = status ? 'WHERE i.status = ?' : '';
+    const total = database.prepare(`SELECT count(*) AS n FROM inquiries i ${where}`).get(...values).n;
+    const items = database.prepare(`SELECT ${inquiryFields} FROM inquiries i JOIN animals a ON a.id = i.animal_id ${where} ORDER BY i.id DESC LIMIT 20 OFFSET ?`).all(...values, (page - 1) * 20).map(serializeInquiry);
+    response.json({ items, pagination: { page, limit: 20, total, totalPages: Math.ceil(total / 20) } });
+  });
+  router.get('/inquiries/:id', (request, response) => response.json({ inquiry: readInquiry(id(request.params.id)) }));
+  router.put('/inquiries/:id', (request, response) => {
+    const inquiryId = id(request.params.id); readInquiry(inquiryId);
+    const body = objectBody(request.body, ['name', 'email', 'message', 'status']);
+    const values = [text(body.name, 'Vardas'), validateEmail(body.email), text(body.message, 'Žinutė', 5000), choice(body.status, ['new', 'reviewed', 'completed'], 'Būsena')];
+    database.prepare("UPDATE inquiries SET name = ?, email = ?, message = ?, status = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?").run(...values, inquiryId);
+    response.json({ inquiry: readInquiry(inquiryId) });
+  });
+  router.delete('/inquiries/:id', (request, response) => {
+    const inquiryId = id(request.params.id); readInquiry(inquiryId);
+    database.prepare('DELETE FROM inquiries WHERE id = ?').run(inquiryId);
+    response.status(204).end();
+  });
   return router;
 }

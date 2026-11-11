@@ -337,6 +337,8 @@ input::placeholder { color: #73837b; opacity: 1; }
 @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } .admin-panel { padding: 17px; } .admin-filters { flex-wrap: wrap; } .admin-filters input { width: 100%; flex-basis: 100%; } }
 
 .photo-editor { margin-top: 24px; max-width: 860px; }
+.inquiry-new { background: #ffe2e7; color: #bd2c4a; }
+.inquiry-reviewed { background: #e0efff; color: #1265aa; }
 .adopt-button { width: 100%; margin-bottom: 12px; }
 .inquiry-page { max-width: 760px; padding-block: 28px 45px; }
 .inquiry-card { padding: 32px; background: white; border: 1px solid var(--line); border-radius: 10px; }

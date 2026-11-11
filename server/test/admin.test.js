@@ -31,6 +31,25 @@ async function setup(context, options = {}) {
 }
 const animalInput = { name: 'Tobis', speciesId: 1, ageMonths: 18, size: 'medium', status: 'available', description: 'Draugiškas ir smalsus šuo.' };
 
+test('Darbuotojas peržiūri, filtruoja, redaguoja ir pašalina priglaudimo užklausą', async (context) => {
+  const { request } = await setup(context);
+  const { animal } = await (await request('admin', '/api/admin/animals', 'POST', animalInput)).json();
+  const body = { animalId: animal.id, name: 'Tomas', email: 'tomas@example.com', message: 'Noriu susipažinti.' };
+  await request('guest', '/api/inquiries', 'POST', body);
+  assert.equal((await request('guest', '/api/admin/inquiries')).status, 401);
+  const list = await (await request('employee', '/api/admin/inquiries?status=new')).json();
+  assert.equal(list.pagination.total, 1); const inquiry = list.items[0];
+  assert.equal(inquiry.email, body.email);
+  assert.equal((await request('employee', `/api/admin/inquiries/${inquiry.id}`)).status, 200);
+  const updated = { name: 'Tomas II', email: body.email, message: 'Patikslinta žinutė.', status: 'reviewed' };
+  assert.equal((await request('employee', `/api/admin/inquiries/${inquiry.id}`, 'PUT', updated)).status, 200);
+  assert.equal((await (await request('admin', '/api/admin/inquiries?status=new')).json()).pagination.total, 0);
+  assert.equal((await request('employee', `/api/admin/inquiries/${inquiry.id}`, 'PUT', { ...updated, status: 'bad' })).status, 400);
+  assert.equal((await request('admin', '/api/admin/inquiries?status=bad')).status, 400);
+  assert.equal((await request('employee', `/api/admin/inquiries/${inquiry.id}`, 'DELETE')).status, 204);
+  assert.equal((await request('employee', `/api/admin/inquiries/${inquiry.id}`)).status, 404);
+});
+
 test('Vieša užklausa išsaugoma, privati informacija neviešinama, užimtų gyvūnų užklausos atmetamos', async (context) => {
   const { request, database } = await setup(context);
   const { animal } = await (await request('admin', '/api/admin/animals', 'POST', animalInput)).json();

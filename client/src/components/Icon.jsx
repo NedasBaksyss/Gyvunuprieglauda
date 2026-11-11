@@ -1,4 +1,5 @@
 const paths = {
+  mail: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 6 9 7 9-7" /></>,
   tag: <><path d="M3 3h8l10 10-8 8L3 11Z" /><circle cx="7" cy="7" r="1" /></>,
   home: <><path d="m3 10 9-7 9 7v11H3Z" /><path d="M9 21v-8h6v8" /></>,
   logout: <><path d="M9 3H3v18h6M14 7l5 5-5 5M7 12h13" /></>,
