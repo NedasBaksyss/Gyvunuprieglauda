@@ -20,8 +20,9 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       strictPort: true,
       proxy: {
-        '/api': `http://${apiHost}:${apiPort}`,
-        '/uploads': `http://${apiHost}:${apiPort}`,
+        // Express compares Origin with Host when checking mutations.
+        '/api': { target: `http://${apiHost}:${apiPort}`, changeOrigin: false },
+        '/uploads': { target: `http://${apiHost}:${apiPort}`, changeOrigin: false },
       },
     },
   };
