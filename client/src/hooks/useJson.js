@@ -11,13 +11,15 @@ export default function useJson(url) {
     const timeout = setTimeout(() => controller.abort(new DOMException('Timeout', 'TimeoutError')), 12000);
 
     async function load() {
+      let status = null;
       try {
         const response = await fetch(url, { signal: controller.signal, headers: { Accept: 'application/json' } });
+        status = response.status;
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || 'Nepavyko gauti duomenų.');
-        if (active) setResult({ key, data, error: '' });
+        if (active) setResult({ key, data, error: '', status });
       } catch (error) {
-        if (active) setResult({ key, data: null, error: error.name === 'TimeoutError'
+        if (active) setResult({ key, data: null, status, error: error.name === 'TimeoutError'
           ? 'Serveris neatsako. Pabandykite dar kartą.'
           : 'Nepavyko įkelti duomenų. Patikrinkite ryšį ir bandykite dar kartą.' });
       } finally {
@@ -32,6 +34,7 @@ export default function useJson(url) {
     data: result.key === key ? result.data : null,
     error: result.key === key ? result.error : '',
     loading: result.key !== key,
+    status: result.key === key ? result.status : null,
     retry: () => setRevision((value) => value + 1),
   };
 }
