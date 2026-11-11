@@ -31,6 +31,23 @@ async function setup(context, options = {}) {
 }
 const animalInput = { name: 'Tobis', speciesId: 1, ageMonths: 18, size: 'medium', status: 'available', description: 'Draugiškas ir smalsus šuo.' };
 
+test('Rūšių CRUD skirtas tik administratoriui ir saugo naudojamas bei pasikartojančias rūšis', async (context) => {
+  const { request } = await setup(context);
+  for (const [method, url] of [['POST', '/api/admin/species'], ['PUT', '/api/admin/species/1'], ['DELETE', '/api/admin/species/1']]) {
+    assert.equal((await request('employee', url, method, { name: 'Katė' })).status, 403);
+  }
+  const created = await request('admin', '/api/admin/species', 'POST', { name: 'Katė' });
+  assert.equal(created.status, 201);
+  const { species } = await created.json();
+  assert.equal((await request('admin', '/api/admin/species', 'POST', { name: 'katė' })).status, 409);
+  assert.equal((await request('admin', '/api/admin/species', 'POST', { name: ' ' })).status, 400);
+  assert.equal((await request('admin', `/api/admin/species/${species.id}`, 'PUT', { name: 'Triušis' })).status, 200);
+  assert.ok((await (await request('guest', '/api/species')).json()).items.some((item) => item.name === 'Triušis'));
+  await request('admin', '/api/admin/animals', 'POST', animalInput);
+  assert.equal((await request('admin', '/api/admin/species/1', 'DELETE')).status, 409);
+  assert.equal((await request('admin', `/api/admin/species/${species.id}`, 'DELETE')).status, 204);
+});
+
 test('Gyvūnų CRUD leidžiamas darbuotojui, pakeitimai matomi viešai, susiję įrašai saugomi', async (context) => {
   const { request, database } = await setup(context);
   assert.equal((await request('guest', '/api/admin/animals')).status, 401);

@@ -54,5 +54,31 @@ export function createAdminRouter(database, auth, photos) {
     await photos.remove(oldPhoto);
     response.json({ animal: readAnimal(animalId) });
   });
+  function speciesName(body, speciesId = 0) {
+    objectBody(body, ['name']);
+    const name = text(body.name, 'Pavadinimas', 80);
+    if (database.prepare('SELECT id FROM species WHERE normalize_search(name) = normalize_search(?) AND id != ?').get(name, speciesId)) throw new HttpError(409, 'Tokia rūšis jau yra.');
+    return name;
+  }
+  function requireSpecies(speciesId) {
+    if (!database.prepare('SELECT id FROM species WHERE id = ?').get(speciesId)) throw new HttpError(404, 'Rūšis nerasta.');
+  }
+  router.post('/species', auth.requireRole('admin'), (request, response) => {
+    const name = speciesName(request.body);
+    const result = database.prepare('INSERT INTO species (name) VALUES (?)').run(name);
+    response.status(201).json({ species: { id: Number(result.lastInsertRowid), name, animalCount: 0 } });
+  });
+  router.put('/species/:id', auth.requireRole('admin'), (request, response) => {
+    const speciesId = id(request.params.id); requireSpecies(speciesId);
+    const name = speciesName(request.body, speciesId);
+    database.prepare("UPDATE species SET name = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?").run(name, speciesId);
+    response.json({ species: { id: speciesId, name } });
+  });
+  router.delete('/species/:id', auth.requireRole('admin'), (request, response) => {
+    const speciesId = id(request.params.id); requireSpecies(speciesId);
+    if (database.prepare('SELECT id FROM animals WHERE species_id = ? LIMIT 1').get(speciesId)) throw new HttpError(409, 'Rūšis priskirta gyvūnams. Pirmiausia pakeiskite jų rūšį.');
+    database.prepare('DELETE FROM species WHERE id = ?').run(speciesId);
+    response.status(204).end();
+  });
   return router;
 }
