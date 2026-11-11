@@ -4,6 +4,7 @@ import path from 'node:path';
 import { createCatalogRouter } from './routes/catalog.js';
 import { HttpError } from './lib/http-error.js';
 import { createAuth } from './auth.js';
+import { createAdminRouter } from './routes/admin.js';
 
 export function createApp({ database, clientDist, secureCookies }) {
   const app = express();
@@ -11,6 +12,7 @@ export function createApp({ database, clientDist, secureCookies }) {
   app.use(express.json({ limit: '100kb' }));
   const auth = createAuth(database, { secureCookies });
   app.use('/api/auth', auth.router);
+  app.use('/api/admin', createAdminRouter(database, auth));
 
   app.get('/api/health', (_request, response) => {
     database.prepare('SELECT 1').get();

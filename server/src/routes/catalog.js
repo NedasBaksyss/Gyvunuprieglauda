@@ -4,7 +4,7 @@ import { normalizeSearch } from '../lib/search.js';
 
 const statuses = new Set(['available', 'reserved', 'adopted']);
 const queryKeys = new Set(['q', 'speciesId', 'status', 'page', 'limit']);
-const publicFields = `a.id, a.name, a.age_months, a.size, a.description,
+export const publicFields = `a.id, a.name, a.age_months, a.size, a.description,
   a.status, a.photo_path, a.created_at, a.updated_at,
   s.id AS species_id, s.name AS species_name`;
 
@@ -23,7 +23,7 @@ function singleString(value, label, maximum) {
   return value.trim();
 }
 
-function serializeAnimal(row) {
+export function serializeAnimal(row) {
   return {
     id: row.id,
     name: row.name,

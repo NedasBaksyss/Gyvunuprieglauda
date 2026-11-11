@@ -21,6 +21,7 @@ export default function AdminLayout() {
       <Link className="brand" to="/"><img src="/favicon.svg" alt="" />Gyvūnų prieglauda</Link>
       <nav aria-label="Administravimo meniu">
         <NavLink to="/admin" end><Icon name="home" />Apžvalga</NavLink>
+        <NavLink to="/admin/gyvunai"><Icon name="heart" />Gyvūnai</NavLink>
         <Link to="/prisijungti"><Icon name="user" />Mano paskyra</Link>
         <Link to="/"><Icon name="arrow" />Viešasis puslapis</Link>
       </nav>

@@ -7,12 +7,17 @@ import LoginPage from './pages/LoginPage.jsx';
 import { AuthProvider } from './hooks/useAuth.jsx';
 import AdminLayout from './components/AdminLayout.jsx';
 import AdminOverview from './pages/AdminOverview.jsx';
+import AdminAnimals from './pages/AdminAnimals.jsx';
+import AnimalForm from './pages/AnimalForm.jsx';
 
 export default function App() {
   return (
     <AuthProvider><Routes>
       <Route path="admin" element={<AdminLayout />}>
         <Route index element={<AdminOverview />} />
+        <Route path="gyvunai" element={<AdminAnimals />} />
+        <Route path="gyvunai/naujas" element={<AnimalForm />} />
+        <Route path="gyvunai/:id" element={<AnimalForm />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
       <Route element={<PublicLayout />}>
