@@ -1,18 +1,25 @@
 import express from 'express';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createCatalogRouter } from './routes/catalog.js';
 import { HttpError } from './lib/http-error.js';
 import { createAuth } from './auth.js';
 import { createAdminRouter } from './routes/admin.js';
+import { createPhotos, photoPathPattern } from './lib/photos.js';
 
-export function createApp({ database, clientDist, secureCookies }) {
+export function createApp({ database, clientDist, secureCookies, uploadsDir = fileURLToPath(new URL('../uploads/', import.meta.url)) }) {
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json({ limit: '100kb' }));
   const auth = createAuth(database, { secureCookies });
   app.use('/api/auth', auth.router);
-  app.use('/api/admin', createAdminRouter(database, auth));
+  app.use('/api/admin', createAdminRouter(database, auth, createPhotos(uploadsDir)));
+  app.use('/uploads', (request, response, next) => {
+    if (!photoPathPattern.test(`/uploads${request.path}`)) return response.status(404).json({ message: 'Nuotrauka nerasta.' });
+    next();
+  }, express.static(uploadsDir, { index: false, maxAge: '1y', immutable: true, setHeaders(response) { response.setHeader('X-Content-Type-Options', 'nosniff'); } }),
+  (_request, response) => response.status(404).json({ message: 'Nuotrauka nerasta.' }));
 
   app.get('/api/health', (_request, response) => {
     database.prepare('SELECT 1').get();

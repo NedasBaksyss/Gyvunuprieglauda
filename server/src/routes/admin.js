@@ -3,7 +3,7 @@ import { createCatalogRouter, publicFields, serializeAnimal } from './catalog.js
 import { HttpError } from '../lib/http-error.js';
 import { choice, id, integer, objectBody, text } from '../lib/validation.js';
 
-export function createAdminRouter(database, auth) {
+export function createAdminRouter(database, auth, photos) {
   const router = Router();
   router.use(auth.loadSession, auth.requireUser, auth.protectMutation);
   router.use((_request, response, next) => { response.set('Cache-Control', 'no-store'); next(); });
@@ -29,11 +29,30 @@ export function createAdminRouter(database, auth) {
     database.prepare("UPDATE animals SET name = ?, species_id = ?, age_months = ?, size = ?, status = ?, description = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?").run(...animalInput(request.body), animalId);
     response.json({ animal: readAnimal(animalId) });
   });
-  router.delete('/animals/:id', (request, response) => {
-    const animalId = id(request.params.id); readAnimal(animalId);
+  router.delete('/animals/:id', async (request, response) => {
+    const animalId = id(request.params.id); const animal = readAnimal(animalId);
     if (database.prepare('SELECT id FROM inquiries WHERE animal_id = ? LIMIT 1').get(animalId)) throw new HttpError(409, 'Gyvūnas turi priglaudimo užklausų. Pirmiausia sutvarkykite susijusias užklausas.');
     database.prepare('DELETE FROM animals WHERE id = ?').run(animalId);
+    await photos.remove(animal.photoUrl);
     response.status(204).end();
+  });
+  router.post('/animals/:id/photo', (request, _response, next) => { readAnimal(id(request.params.id)); next(); }, photos.receive, async (request, response) => {
+    const animalId = id(request.params.id);
+    const photoUrl = await photos.save(request.file);
+    let oldPhoto;
+    try {
+      oldPhoto = readAnimal(animalId).photoUrl;
+      database.prepare("UPDATE animals SET photo_path = ?, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?").run(photoUrl, animalId);
+    } catch (error) { await photos.remove(photoUrl); throw error; }
+    await photos.remove(oldPhoto);
+    response.json({ animal: readAnimal(animalId) });
+  });
+  router.delete('/animals/:id/photo', async (request, response) => {
+    const animalId = id(request.params.id);
+    const oldPhoto = readAnimal(animalId).photoUrl;
+    database.prepare("UPDATE animals SET photo_path = NULL, updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE id = ?").run(animalId);
+    await photos.remove(oldPhoto);
+    response.json({ animal: readAnimal(animalId) });
   });
   return router;
 }
